@@ -162,6 +162,17 @@ function Vector:dot(a,b)
   return n
 end
 
+function Vector:cross(a,b)
+  local c = {}
+  setmetatable(c,self.mt)
+  for i=1,3 do
+    i1 = (i)%3 + 1
+    i2 = (i+1)%3 + 1
+    c[i]=a[i1]*b[i2]-a[i2]*b[i1]
+  end
+  return c
+end
+
 
 function Vector:normed(a)
   local n = math.sqrt(Vector:dot(a,a))
@@ -216,6 +227,70 @@ function Vector:transp(m) -- transposition
   return res
 end
 
+-- generator of permutation from PIL
+function permgen (a, n)
+  if n == 0 then
+    coroutine.yield(a)
+  else
+    for i=1,n do
+
+      -- put i-th element as the last one
+      a[n], a[i] = a[i], a[n]
+
+      -- generate all permutations of the other elements
+      permgen(a, n - 1)
+
+      -- restore i-th element
+      a[n], a[i] = a[i], a[n]
+
+    end
+  end
+end
+
+
+function perm (n)
+  local a = {}
+  for i=1,n do
+    a[i]=i
+  end
+  local co = coroutine.create(function () permgen(a, n) end)
+  return function ()   -- iterator
+    local code, res = coroutine.resume(co)
+    return res
+  end
+end
+
+function permtostr(p)
+  local txt = "("
+  local sep = ""
+  for i=1,#p do
+    txt = txt..sep..p[i]
+    sep = ","
+  end
+  return txt..")"
+end
+
+function sign(perm)
+  local e = 1
+  for i=1,#perm do
+    for j= (i+1),#perm do
+      if perm[i]>perm[j] then
+        e = -e
+      end
+    end
+  end
+  return e
+end
+
+
+function Vector:det(M)
+  local d = 0
+  for p in perm(3) do
+    d = d + sign(p)*M[1][p[1]]*M[2][p[2]]*M[3][p[3]]
+  end
+  return d
+end
+
   
   if test == "on" then
     v= Vector:vect(I,J)
@@ -236,11 +311,22 @@ end
     print("Is v equal z ?", v==z)
     print("Is v equal e2-e1 ?",v==e2-e1)
     print("v.z="..Vector:dot(v,z))
+    print("v x z:",Vector:cross(v,z))
+    print("(1,0,0)x(0,1,0)=",Vector:cross({1,0,0},{0,1,0}))
+    print("(0,1,0)x(1,0,0)=",Vector:cross({0,1,0},{1,0,0}))
     bon = Vector:orthonormalize(z,v,e3)
     print("Orthonormal base from z,v,e3:")
     matprint(bon)
     print("Transpose of the previous base")
     matprint(Vector:transp(bon))
+    print(sign({2,3,1}))
+    print("Generate perm with signature")
+    for p in perm(3) do
+      
+      print("   "..permtostr(p).." sign="..sign(p))
+    end
+    print("det(v,z,e3)="..Vector:det{v,z,e3})
+    print("det(e1,e2,e3)="..Vector:det{e1,e2,e3})
   end
 
 --définition d'un polygone
