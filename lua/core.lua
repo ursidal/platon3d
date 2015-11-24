@@ -64,8 +64,15 @@ Vector.mt = {}
 setmetatable(Vector.zero,Vector.mt) 
 Vector.zero.type="vector"
 
+function Vector:new(x,y,z) 
+  local v = {x,y,z} 
+  setmetatable(v,self.mt) 
+  v.type = "vector"
+  return v 
+end 
+
 function Vector.mt.__add(a,b) 
-  local res = Vector.zero 
+  local res = Vector:new(0,0,0) 
   for i=1,3 do 
     res[i]=a[i]+b[i] 
   end 
@@ -73,7 +80,7 @@ function Vector.mt.__add(a,b)
 end 
 
 function Vector.mt.__unm(a) 
-  local res = Vector.zero
+  local res = Vector:new(0,0,0)
   for i=1,3 do 
     res[i]=-a[i] 
   end 
@@ -81,7 +88,7 @@ function Vector.mt.__unm(a)
 end 
 
 function Vector.mt.__sub(a,b) 
-  local res = Vector.zero
+  local res = Vector:new(0,0,0)
   for i=1,3 do 
     res[i]=a[i]-b[i] 
   end 
@@ -89,7 +96,7 @@ function Vector.mt.__sub(a,b)
 end 
 
 function Vector.mt.__mul(a,b) 
-  local res = Vector.zero 
+  local res = Vector:new(0,0,0) 
   if type(a)=="number" then 
     for i=1,3 do 
       res[i] = a* b[i] 
@@ -103,7 +110,7 @@ function Vector.mt.__mul(a,b)
 end 
 
 function Vector.mt.__div(a,b) 
-  local res = Vector.zero
+  local res = Vector:new(0,0,0)
     for i=1,3 do 
       res[i] = a[i]/b 
     end 
@@ -126,15 +133,10 @@ function Vector.mt.__eq(u,v)
   return ans 
 end 
 
-function Vector:new(x,y,z) 
-  local v = {x,y,z} 
-  setmetatable(v,self.mt) 
-  v.type = "vector"
-  return v 
-end 
+
 
 function Vector:vect(A,B) 
-  local u=Vector.zero
+  local u=Vector:new(0,0,0)
   for i=1,3 do 
     u[i]=B[i]-A[i] 
   end 
@@ -147,7 +149,7 @@ function Vector:dot(a,b)
 end 
 
 function Vector:cross(a,b) 
-  local c = Vector.zero
+  local c = Vector:new(0,0,0)
   for i=1,3 do 
     i1 = (i)%3 + 1 
     i2 = (i+1)%3 + 1 
