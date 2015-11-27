@@ -426,7 +426,9 @@ end
 
 iview = Vector:cross(kview,jview)
 
-Mrot = Vector:transp({iview,jview,kview})
+Mrot = {iview,jview,kview}
+
+matprint(Mrot)
 
 Scene.axis = {}
 
