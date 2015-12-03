@@ -170,7 +170,7 @@ function Vector:orthonormalize(...)
       z = z - Vector:dot(z,u)*u 
     end 
     if z~= Vector.zero then 
-      table.insert(basis,z) 
+      table.insert(basis,Vector:normed(z)) 
     end 
   end 
   return basis 
@@ -320,7 +320,7 @@ Line = {}
 
 function Segment:new(A,B)
   local s = {A,B}
-  setmetatable(s,self)
+  setmetatable(s,self) 
   s.type = "segment"
   return s
 end
@@ -389,6 +389,36 @@ function Plane:new(...)
   return p
 end
 
+function Vector:iscolinear(v1,v2)
+  return (v1[1]*v2[2]==v2[1]*v1[2] and v1[1]*v2[3]==v2[1]*v1[3]) 
+end
+  
+function Vector:iscoplanar(v1,v2,v3)
+  return Vector:det({v1,v2,v3})==0
+end
+
+
+function intersection(obj1,obj2)
+  local t1 = obj1.type
+  local t2 = obj2.type
+  if (t1=="line" and t2=="plane") or (t1=="plane" and t2=="line") then
+    local d = (t1=="line" and obj1) or obj2
+    local p = (t1=="plane" and obj1) or obj2
+    if Vector:iscolinear(d.vector,p.normal) then
+      return nil
+    else
+      local t = (Vector:dot(p.points[1],p.normal)-Vector:dot(d.points[1],p.normal))/Vector.dot(p.normal,d.vector)
+      return Point.new(d.points[1]+t*d.vector[1],d.points[2]+t*d.vector[2],d.points[3]+t*d.vector[3])
+  elseif t1=="plane" and t2=="plane" then
+    local p1,p2 = obj1,obj2
+    local v = Vector:normed(Vector:cross(p1.normal,p2.normal)) --vecteur directeur
+    local mat = {p1.normal,p2.normal,v}
+    local res = invmat(mat)*Vector:new(Vector:dot(p1.points[1],p1.normal),Vector:dot(p2.points[1],p2.normal),0)
+    local P = Point:new(res[1],res[2],res[3])
+    local d = Line:new(P,v)
+    return d
+  end
+  
 
 --Polygons
 
