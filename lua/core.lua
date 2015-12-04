@@ -44,6 +44,9 @@ function Point:new(x,y,z)
   return A 
 end 
 
+function Point.__tostring(P) 
+  return "("..P[1]..","..P[2]..","..P[3]..")" 
+end 
 
 O = Point:new(0,0,0) 
 I = Point:new(1,0,0) 
@@ -396,20 +399,20 @@ function Line:new(...)
   local vectors = {}
   for _,v in pairs(args) do
     if v.type == "point" then
-      points.insert(v)
+      table.insert(points,v)
     elseif v.type== "vector" then
-      vectors.insert(v)
+      table.insert(vectors,v)
     end
   end
   if #points == 2 then
-    s.points = points
-    s.vector = Vector:normed(Vector:vect(points[1],points[2]))
+    l.points = points
+    l.vector = Vector:normed(Vector:vect(points[1],points[2]))
   else
-    s.points = points
-    s.vector = vectors[1]
+    l.points = points
+    l.vector = vectors[1]
   end
-  s.type = "line"
-  return s
+  l.type = "line"
+  return l
 end
 
 function isinline(P,d)
@@ -430,11 +433,12 @@ function Plane:new(...)
   local vectors = {}
   for _,v in pairs(args) do
     if v.type == "point" then
-      points.insert(v)
+      table.insert(points,v)
     else
-      vectors.insert(v)
+      table.insert(vectors,v)
     end
   end
+  --print("nb args",#args,"nb points",#points,"nb vect",#vectors)
   if #points == 3 then
     p.points = points
     local u = Vector:normed(Vector:vect(points[1],points[2]))
@@ -456,7 +460,9 @@ function Plane:new(...)
   return p
 end
 
-
+function isinplane(Pt,pl)
+  return Vector:dot(pl.normal,Vector:vect(Pt,pl.points[1]))==0
+end
 
 function intersection(obj1,obj2)
   local t1 = obj1.type
@@ -464,17 +470,22 @@ function intersection(obj1,obj2)
   if (t1=="line" and t2=="plane") or (t1=="plane" and t2=="line") then
     local d = (t1=="line" and obj1) or obj2
     local p = (t1=="plane" and obj1) or obj2
-    if Vector:iscolinear(d.vector,p.normal) then
-      return nil
+    if Vector:dot(d.vector,p.normal)==0 then
+      print("plane and line parallels")
+      if isinplane(d.points[1],p) then
+        return d
+      else
+        return nil
+      end
     else
-      local t = (Vector:dot(p.points[1],p.normal)-Vector:dot(d.points[1],p.normal))/Vector.dot(p.normal,d.vector)
-      return Point.new(d.points[1]+t*d.vector[1],d.points[2]+t*d.vector[2],d.points[3]+t*d.vector[3])
+      local t = (Vector:dot(p.points[1],p.normal)-Vector:dot(d.points[1],p.normal))/Vector:dot(p.normal,d.vector)
+      return Point:new(d.points[1][1]+t*d.vector[1],d.points[1][2]+t*d.vector[2],d.points[1][3]+t*d.vector[3])
     end
   elseif t1=="plane" and t2=="plane" then
     local p1,p2 = obj1,obj2
     local v = Vector:normed(Vector:cross(p1.normal,p2.normal)) --vecteur directeur
-    local mat = {p1.normal,p2.normal,v}
-    local res = invmat(mat)*Vector:new(Vector:dot(p1.points[1],p1.normal),Vector:dot(p2.points[1],p2.normal),0)
+    local mat = {Vector:normed(p1.normal),Vector:normed(p2.normal),v}
+    local res = Vector:matmult(invmat(mat),Vector:new(Vector:dot(p1.points[1],p1.normal),Vector:dot(p2.points[1],p2.normal),0))
     local P = Point:new(res[1],res[2],res[3])
     local d = Line:new(P,v)
     return d
@@ -491,6 +502,21 @@ function intersection(obj1,obj2)
     end
     
   end
+end
+
+if test=="on" then
+  p = Plane:new(Point:new(1,0,0),Point:new(0,1,0),Point:new(0,0,1) )
+  d1 = Line:new(Point:new(1,1,1),Vector:new(0.5,1,1))
+  A = intersection(p,d1)
+  p2 = Plane:new(O,I,J)
+  d2 = intersection(p,p2)
+  print("intersection p et d",A)
+  print("intersection p and p2 is a",d2.type)
+  print("points in intersection")
+  for k,v in pairs(d2.points) do
+    print(k,v)
+  end
+  print("vector",d2.vector)
 end
 
 
@@ -516,6 +542,13 @@ end
 
 Scene = {}
 
+Scene.xmin = xmin or -5
+Scene.xmax = xmax or  5
+Scene.ymin = ymin or -5
+Scene.ymax = ymax or  5
+Scene.zmin = zmin or -5
+Scene.zmax = zmax or  5 
+
 Scene.viewpoint = Point:new(1,0.5,1)
 
 kview = Vector:normed(Vector:vect(Scene.viewpoint,O))
@@ -532,6 +565,7 @@ iview = Vector:cross(kview,jview)
 
 Mrot = {iview,jview,kview}
 
+print("matrix of rotation")
 matprint(Mrot)
 
 Scene.axis = {}
@@ -539,6 +573,8 @@ Scene.axis = {}
 -- Table of drawn objects 
 
 Predraw = {}
+
+
 
 -- Table of polygons to draw effectively
 
