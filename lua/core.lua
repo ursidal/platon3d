@@ -141,6 +141,15 @@ function Vector:vect(A,B)
   return u 
 end 
 
+function Vector:copy(v)
+  local u = Vector:new(0,0,0)
+  for i=1,3 do
+    u[i]=v[i]
+  end
+  return u
+end
+
+
 function Vector:dot(a,b) 
    local n = (a[1]*b[1]+a[2]*b[2]+a[3]*b[3]) 
   return n 
@@ -262,12 +271,60 @@ end
 
 function Vector:det(M) 
   local d = 0 
-  for p in perm(3) do 
-    d = d + sign(p)*M[1][p[1]]*M[2][p[2]]*M[3][p[3]] 
+  local n = #M
+  for p in perm(n) do 
+    local z = sign(p)
+    for i=1,n do
+      z = z*M[i][p[i]]
+    end
+    d = d + z 
   end 
   return d 
 end 
 
+function Vector:iscolinear(v1,v2)
+  return (v1[1]*v2[2]==v2[1]*v1[2] and v1[1]*v2[3]==v2[1]*v1[3]) 
+end
+  
+function Vector:iscoplanar(v1,v2,v3)
+  return Vector:det({v1,v2,v3})==0
+end
+
+
+function invmat(M)
+  local n = #M
+  local c
+  if n ~= 3 then
+    error("In invmat, the argument is not a squared matrix")
+  end
+  local dep = {Vector:copy(M[1]),Vector:copy(M[2]),Vector:copy(M[3])}
+  --print("dep");matprint(dep)
+  local arr = {Vector:new(1,0,0),Vector:new(0,1,0),Vector:new(0,0,1)}
+  for i=1,3 do
+    if dep[i][i]==0 then
+      k=i+1
+      while dep[k][i]==0 do
+        k=k+1
+      end
+      dep[i],dep[k] = dep[k],dep[i]
+      arr[i],arr[k] = arr[k],arr[i]
+    end
+    c = dep[i][i]
+    dep[i] = dep[i]/c
+    --print("dep",dep[i])
+    arr[i] = arr[i]/c
+    --print("arr",arr[i])
+    --matprint(dep)
+    for j=1,3 do
+      if j~=i then
+        c = dep[j][i]
+        dep[j] = dep[j]-c*dep[i]
+        arr[j] = arr[j]-c*arr[i]
+      end
+    end
+  end
+  return arr
+end
 -- canonical base
 
 e = {Vector:new(1,0,0),Vector:new(0,1,0),Vector:new(0,0,1)}
@@ -299,13 +356,16 @@ e = {Vector:new(1,0,0),Vector:new(0,1,0),Vector:new(0,0,1)}
     matprint(bon) 
     print("Transpose of the previous base") 
     matprint(Vector:transp(bon)) 
-    print(sign({2,3,1})) 
-    print("Generate perm with signature") 
-    for p in perm(3) do 
-      print("   "..permtostr(p).." sign="..sign(p)) 
-    end 
+    print("Inverse of the base")
+    matprint(invmat(bon))
+    print("signature of 2,3,1 :",sign({2,3,1})) 
+--    print("Generate perm with signature") 
+--    for p in perm(3) do 
+--      print("   "..permtostr(p).." sign="..sign(p)) 
+--    end 
     print("det(v,z,e3)="..Vector:det{v,z,e3}) 
     print("det(e1,e2,e3)="..Vector:det{e1,e2,e3}) 
+    
   end 
 
 
@@ -343,7 +403,7 @@ function Line:new(...)
   end
   if #points == 2 then
     s.points = points
-    s.vector = Vector:normed(Vector:new(points[1],points[2]))
+    s.vector = Vector:normed(Vector:vect(points[1],points[2]))
   else
     s.points = points
     s.vector = vectors[1]
@@ -352,7 +412,14 @@ function Line:new(...)
   return s
 end
 
+function isinline(P,d)
+  return Vector:iscolinear(Vector:new(P,d.points[1]),d.vector)
+end
+
+
 --Plane
+
+
 
 Plane = {}
 
@@ -370,8 +437,8 @@ function Plane:new(...)
   end
   if #points == 3 then
     p.points = points
-    local u = Vector:normed(Vector:new(points[1],points[2]))
-    local v = Vector:normed(Vector:new(points[1],points[3]))
+    local u = Vector:normed(Vector:vect(points[1],points[2]))
+    local v = Vector:normed(Vector:vect(points[1],points[3]))
     p.vectors = {u,v}
     p.normal = Vector:cross(u,v)
   elseif #vectors == 1 then
@@ -389,13 +456,6 @@ function Plane:new(...)
   return p
 end
 
-function Vector:iscolinear(v1,v2)
-  return (v1[1]*v2[2]==v2[1]*v1[2] and v1[1]*v2[3]==v2[1]*v1[3]) 
-end
-  
-function Vector:iscoplanar(v1,v2,v3)
-  return Vector:det({v1,v2,v3})==0
-end
 
 
 function intersection(obj1,obj2)
@@ -409,6 +469,7 @@ function intersection(obj1,obj2)
     else
       local t = (Vector:dot(p.points[1],p.normal)-Vector:dot(d.points[1],p.normal))/Vector.dot(p.normal,d.vector)
       return Point.new(d.points[1]+t*d.vector[1],d.points[2]+t*d.vector[2],d.points[3]+t*d.vector[3])
+    end
   elseif t1=="plane" and t2=="plane" then
     local p1,p2 = obj1,obj2
     local v = Vector:normed(Vector:cross(p1.normal,p2.normal)) --vecteur directeur
@@ -417,8 +478,21 @@ function intersection(obj1,obj2)
     local P = Point:new(res[1],res[2],res[3])
     local d = Line:new(P,v)
     return d
+  elseif t1=="line" and t2=="line" then
+    local d1,d2 = obj1,obj2
+    if not(Vector:iscoplanar(d1.vector,d2.vector,Vector:vect(d1.points[1],d2.points[1]))) then
+        return nil
+    elseif Vector:iscolinear(d1.vector,d2.vector) then
+      if isinline(d1.points[1],d2) then
+        return d1
+      else
+        --intersection de deux droites secantes
+      end
+    end
+    
   end
-  
+end
+
 
 --Polygons
 
