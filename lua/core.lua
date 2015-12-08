@@ -48,14 +48,21 @@ function Point.__tostring(P)
   return "("..P[1]..","..P[2]..","..P[3]..")" 
 end 
 
+function Point:translation(A,u)
+  local B = Point:new(0,0,0)
+  for i=1,3 do
+    B[i]=A[i]+u[i]
+  end
+  return B
+end
+
+
 O = Point:new(0,0,0) 
 I = Point:new(1,0,0) 
 J = Point:new(0,1,0) 
 K = Point:new(0,0,1) 
 
 --définition de vecteur 
-
-u = {x = 1, y = 0, z = 0} 
 
 Vector = { } 
 
