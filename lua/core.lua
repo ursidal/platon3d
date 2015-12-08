@@ -152,17 +152,12 @@ function Vector:vect(A,B)
 end 
 
 function Vector:copy(v)
-  local u = Vector:new(0,0,0)
-  for i=1,3 do
-    u[i]=v[i]
-  end
-  return u
+  return Vector:new(v[1],v[2],v[3])
 end
 
 
 function Vector:dot(a,b) 
-   local n = (a[1]*b[1]+a[2]*b[2]+a[3]*b[3]) 
-  return n 
+  return (a[1]*b[1]+a[2]*b[2]+a[3]*b[3]) 
 end 
 
 function Vector:cross(a,b) 
@@ -426,6 +421,11 @@ function isinline(P,d)
   return Vector:iscolinear(Vector:new(P,d.points[1]),d.vector)
 end
 
+function islineinplane(l,p)
+  local a = isinplane(l.points[1],p)
+  local b = Vector:dot(l.vector,p.normal)==0
+  return a and b
+end
 
 --Plane
 
