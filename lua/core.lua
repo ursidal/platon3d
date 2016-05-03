@@ -544,6 +544,30 @@ function quad(A,B,C,D)
 end
 
 
+--Polyhedron
+
+Polyhedron ={}
+
+function tetrahedron(A,B,C,D)
+  local P = {}
+  --verification ??
+  P.vertices = {A,B,C,D}
+  P.edges = {Segment.new(A,B),Segment.new(A,C),Segment.new(A,D),Segment.new(B,C),Segment.new(C,D),Segment.new(D,B)}
+  P.faces = {triangle(A,B,C),triangle(A,C,D),triangle(A,B,D),triangle(B,C,D)}
+  setmetatable(P,Polyhedron)
+  return P
+end
+
+function cube(A,B,C,D,E,F,G,H)
+  local P = {}
+  --verification ??
+  P.vertices = {A,B,C,D,E,F,G,H}
+  P.edges = {Segment.new(A,B),Segment.new(C,B),Segment.new(C,D),Segment.new(D,A),Segment.new(E,F),Segment.new(F,G),Segment.new(G,H),Segment.new(H,E),Segment.new(A,E),Segment.new(B,F),Segment.new(C,G),Segment.new(D,H)}
+  P.faces = {quad(A,B,C,D),quad(E,F,G,H),quad(A,B,F,E),quad(D,C,G,H),quad(A,D,H,E),quad(B,C,G,F)}
+  setmetatable(P,Polyhedron)
+  return P
+end
+
 
 -- Table of all created objects
 
